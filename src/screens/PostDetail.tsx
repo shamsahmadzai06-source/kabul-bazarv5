@@ -4,6 +4,7 @@ import { ChevronLeft, Heart, Eye, Share2, Phone, MoreVertical, Trash2, CheckCirc
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
 import { LazyImage } from '@/components/LazyImage';
+import { VideoPlayer } from '@/components/VideoPlayer';
 import { toast } from 'sonner';
 import type { Post } from '@/types';
 
@@ -122,8 +123,15 @@ export default function PostDetail() {
   return (
     <div className="min-h-full bg-[#F2F2F7] dark:bg-black">
       {/* Media */}
-      <div className="relative aspect-[4/3] bg-[#F2F2F7] dark:bg-[#2C2C2E]">
-        <LazyImage src={mediaUrl} alt={post.title} className="w-full h-full" priority />
+      <div className="relative w-full bg-[#F2F2F7] dark:bg-[#2C2C2E]">
+        {post.media?.[0]?.type === 'video' || post.mediaType === 'video' ? (
+          <VideoPlayer 
+            src={mediaUrl} 
+            className="w-full aspect-[4/3]" 
+          />
+        ) : (
+          <LazyImage src={mediaUrl} alt={post.title} className="w-full aspect-[4/3]" priority />
+        )}
 
         {/* Back button */}
         <button
@@ -159,7 +167,7 @@ export default function PostDetail() {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-[#1C1C1E] rounded-t-[20px] -mt-5 relative px-5 pt-5 pb-8">
+      <div className="bg-white dark:bg-[#1C1C1E] relative px-5 pt-5 pb-8 w-full">
         {/* Price */}
         <div className="mb-3">
           <p className="text-[22px] font-bold text-[#1C1C1E] dark:text-white">
