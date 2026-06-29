@@ -19,7 +19,7 @@ export function AdCarousel() {
   }, [next]);
 
   return (
-    <div className="relative w-full h-[140px] rounded-xl overflow-hidden mb-3">
+    <div className="relative w-full h-[220px] md:h-[320px] rounded-xl overflow-hidden mb-3">
       <div
         className="flex h-full transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${current * 100}%)` }}

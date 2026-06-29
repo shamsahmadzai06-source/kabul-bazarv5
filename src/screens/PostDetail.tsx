@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, Eye, Share2, Phone, MoreVertical, Trash2, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
-import { LazyImage } from '@/components/LazyImage';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { toast } from 'sonner';
 import type { Post } from '@/types';
@@ -31,7 +30,6 @@ export default function PostDetail() {
       setLiked(data.isLiked || false);
       setLikeCount(data.likeCount || data.likes || 0);
     } catch {
-      // Use demo data
       const demoPosts = [
         { id: 'demo-1', title: 'iPhone 15 Pro Max', description: 'Brand new, 256GB, Natural Titanium.', priceAfn: 104400, priceAFN: 104400, priceUsd: 1200, priceUSD: 1200, media: [{ id: 'm1', url: '/images/post1.jpg', type: 'image' }], mediaUrl: '/images/post1.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Tech', authorName: 'Kabul Tech', authorAvatar: '/icons/logo.png', authorType: 'admin', likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 7200000 + '', status: 'active', isSold: 0, authorWhatsApp: '+93700000001' },
         { id: 'demo-2', title: 'Traditional Afghan Dress', description: 'Hand embroidered, perfect for weddings.', priceAfn: 7395, priceAFN: 7395, priceUsd: 85, priceUSD: 85, media: [{ id: 'm2', url: '/images/post2.jpg', type: 'image' }], mediaUrl: '/images/post2.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Herat Fashion', authorName: 'Herat Fashion', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 18000000 + '', status: 'active', isSold: 0, authorWhatsApp: '+93700000002' },
@@ -121,16 +119,23 @@ export default function PostDetail() {
   const sellerName = post.authorName || post.sellerName || 'Unknown';
 
   return (
-    <div className="min-h-full bg-[#F2F2F7] dark:bg-black">
+    <div className="min-h-screen bg-[#F2F2F7] dark:bg-black w-full">
       {/* Media */}
       <div className="relative w-full bg-[#F2F2F7] dark:bg-[#2C2C2E]">
         {post.media?.[0]?.type === 'video' || post.mediaType === 'video' ? (
-          <VideoPlayer 
-            src={mediaUrl} 
-            className="w-full aspect-[4/3]" 
+          <VideoPlayer
+            src={mediaUrl}
+            className="w-full"
           />
         ) : (
-          <LazyImage src={mediaUrl} alt={post.title} className="w-full aspect-[4/3]" priority />
+          <div className="w-full" style={{ touchAction: 'pan-x pan-y pinch-zoom' }}>
+            <img 
+              src={mediaUrl} 
+              alt={post.title} 
+              className="w-full h-auto object-contain"
+              style={{ maxWidth: '100%' }}
+            />
+          </div>
         )}
 
         {/* Back button */}
