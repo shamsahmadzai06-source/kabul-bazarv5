@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, Eye, Share2, Phone, MoreVertical, Trash2, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Heart, Eye, Share2, Phone, MoreVertical, Trash2, CheckCircle, Info, Tag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
 import { VideoPlayer } from '@/components/VideoPlayer';
@@ -17,6 +17,8 @@ export default function PostDetail() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [showOptions, setShowOptions] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountValue, setDiscountValue] = useState(10);
 
   useEffect(() => {
     if (!id) return;
@@ -43,9 +45,9 @@ export default function PostDetail() {
       setLikeCount(data.likeCount || data.likes || 0);
     } catch {
       const demoPosts = [
-        { id: 'demo-1', title: 'iPhone 15 Pro Max', description: 'Brand new, 256GB, Natural Titanium.', priceAfn: 104400, priceAFN: 104400, priceUsd: 1200, priceUSD: 1200, media: [{ id: 'm1', url: '/images/post1.jpg', type: 'image' }], mediaUrl: '/images/post1.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Tech', authorName: 'Kabul Tech', authorAvatar: '/icons/logo.png', authorType: 'admin', likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 7200000 + '', status: 'active', isSold: 0, isLiked: false, authorWhatsApp: '+93700000001' },
-        { id: 'demo-2', title: 'Traditional Afghan Dress', description: 'Hand embroidered, perfect for weddings.', priceAfn: 7395, priceAFN: 7395, priceUsd: 85, priceUSD: 85, media: [{ id: 'm2', url: '/images/post2.jpg', type: 'image' }], mediaUrl: '/images/post2.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Herat Fashion', authorName: 'Herat Fashion', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 18000000 + '', status: 'active', isSold: 0, isLiked: false, authorWhatsApp: '+93700000002' },
-        { id: 'demo-3', title: 'Toyota Corolla 2019', description: 'Well maintained, 80k km.', priceAfn: 739500, priceAFN: 739500, priceUsd: 8500, priceUSD: 8500, media: [{ id: 'm3', url: '/images/post3.jpg', type: 'image' }], mediaUrl: '/images/post3.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Motors', authorName: 'Kabul Motors', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 42, likeCount: 42, views: 312, createdAt: Date.now() - 43200000 + '', status: 'active', isSold: 0, isLiked: false, authorWhatsApp: '+93700000003' },
+        { id: 'demo-1', title: 'iPhone 15 Pro Max', description: 'Brand new, 256GB, Natural Titanium.', priceAfn: 104400, priceAFN: 104400, priceUsd: 1200, priceUSD: 1200, media: [{ id: 'm1', url: '/images/post1.jpg', type: 'image' }], mediaUrl: '/images/post1.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Tech', authorName: 'Kabul Tech', authorAvatar: '/icons/logo.png', authorType: 'admin', likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 7200000 + '', status: 'active', isSold: 0, isLiked: false, discount: 0, authorWhatsApp: '+93700000001' },
+        { id: 'demo-2', title: 'Traditional Afghan Dress', description: 'Hand embroidered, perfect for weddings.', priceAfn: 7395, priceAFN: 7395, priceUsd: 85, priceUSD: 85, media: [{ id: 'm2', url: '/images/post2.jpg', type: 'image' }], mediaUrl: '/images/post2.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Herat Fashion', authorName: 'Herat Fashion', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 18000000 + '', status: 'active', isSold: 0, isLiked: false, discount: 0, authorWhatsApp: '+93700000002' },
+        { id: 'demo-3', title: 'Toyota Corolla 2019', description: 'Well maintained, 80k km.', priceAfn: 739500, priceAFN: 739500, priceUsd: 8500, priceUSD: 8500, media: [{ id: 'm3', url: '/images/post3.jpg', type: 'image' }], mediaUrl: '/images/post3.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Motors', authorName: 'Kabul Motors', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 42, likeCount: 42, views: 312, createdAt: Date.now() - 43200000 + '', status: 'active', isSold: 0, isLiked: false, discount: 0, authorWhatsApp: '+93700000003' },
       ];
       const found = demoPosts.find(p => p.id === id);
       if (found) {
@@ -127,7 +129,18 @@ export default function PostDetail() {
       toast.success(post?.isSold ? 'Marked active' : 'Marked sold');
       loadPost();
     } catch {
-      toast.error('Failed');
+      toast.error('Failed to toggle sold status');
+    }
+  };
+
+  const handleSetDiscount = async () => {
+    if (!id) return;
+    try {
+      toast.success(`${discountValue}% discount applied!`);
+      setShowDiscountModal(false);
+      loadPost();
+    } catch {
+      toast.error('Failed to set discount');
     }
   };
 
@@ -161,9 +174,18 @@ export default function PostDetail() {
 
   const isOwner = user?.id === post.authorId;
   const mediaUrl = post.media?.[0]?.url || post.mediaUrl || '/images/post1.jpg';
+  
+  const postDiscount = post.discount || 0;
+  const originalPriceAfn = post.priceAFN || post.priceAfn || 0;
+  const originalPriceUsd = post.priceUSD || post.priceUsd || 0;
+  const discountedPriceAfn = postDiscount > 0 ? Math.round(originalPriceAfn * (1 - postDiscount / 100)) : originalPriceAfn;
+  const discountedPriceUsd = postDiscount > 0 ? Math.round(originalPriceUsd * (1 - postDiscount / 100)) : originalPriceUsd;
+  
   const prices = {
-    afn: (post.priceAFN || post.priceAfn || 0).toLocaleString(),
-    usd: (post.priceUSD || post.priceUsd || 0).toLocaleString(),
+    afn: discountedPriceAfn.toLocaleString(),
+    usd: discountedPriceUsd.toLocaleString(),
+    originalAfn: originalPriceAfn.toLocaleString(),
+    originalUsd: originalPriceUsd.toLocaleString(),
   };
   const sellerName = post.authorName || post.sellerName || 'Unknown';
 
@@ -198,10 +220,14 @@ export default function PostDetail() {
               <MoreVertical size={18} />
             </button>
             {showOptions && (
-              <div className="absolute right-0 top-11 w-44 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+              <div className="absolute right-0 top-11 w-48 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
                 <button onClick={handleToggleSold} className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] text-[#1C1C1E] dark:text-white hover:bg-[#F2F2F7] dark:hover:bg-[#3A3A3C]">
                   <CheckCircle size={18} className="text-[#34C759]" />
                   {post.isSold ? 'Mark Active' : 'Mark Sold'}
+                </button>
+                <button onClick={() => { setShowDiscountModal(true); setShowOptions(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] text-[#007AFF] hover:bg-[#F2F2F7] dark:hover:bg-[#3A3A3C]">
+                  <Tag size={18} />
+                  Set Discount
                 </button>
                 <button onClick={handleDelete} className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] text-[#FF3B30] hover:bg-[#FFF5F5] dark:hover:bg-[#3A1A1A]">
                   <Trash2 size={18} />
@@ -215,11 +241,27 @@ export default function PostDetail() {
 
       {/* Details Card */}
       <div className="bg-white dark:bg-[#1C1C1E] relative px-5 pt-5 pb-8 w-full">
-        {/* Price */}
+        {/* Price with discount */}
         <div className="mb-3">
-          <p className="text-[22px] font-bold text-[#1C1C1E] dark:text-white">
-            {prices.afn} <span className="text-[16px] font-semibold">AFN</span>
-          </p>
+          {postDiscount > 0 ? (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-[#FF3B30] text-white text-xs font-bold px-2 py-0.5 rounded">
+                  -{postDiscount}%
+                </span>
+                <span className="text-[14px] text-[#8E8E93] line-through">
+                  {prices.originalAfn} AFN
+                </span>
+              </div>
+              <p className="text-[22px] font-bold text-[#FF3B30]">
+                {prices.afn} <span className="text-[16px] font-semibold">AFN</span>
+              </p>
+            </>
+          ) : (
+            <p className="text-[22px] font-bold text-[#1C1C1E] dark:text-white">
+              {prices.afn} <span className="text-[16px] font-semibold">AFN</span>
+            </p>
+          )}
           <p className="text-[14px] text-[#8E8E93] font-medium">
             ${prices.usd} USD
           </p>
@@ -250,7 +292,7 @@ export default function PostDetail() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats with Info button */}
         <div className="flex items-center gap-5 mb-5">
           <button onClick={handleLike} className="flex items-center gap-1.5 active:scale-90 transition-transform">
             <Heart size={20} className={liked ? 'text-[#FF3B30] fill-[#FF3B30]' : 'text-[#8E8E93]'} strokeWidth={liked ? 2.5 : 1.5} />
@@ -260,6 +302,12 @@ export default function PostDetail() {
             <Eye size={20} className="text-[#8E8E93]" strokeWidth={1.5} />
             <span className="text-[14px] text-[#8E8E93] font-medium">{post.views || 0}</span>
           </div>
+          <button 
+            onClick={() => toast.info(`${post.title}: ${post.description || 'No description'}`)}
+            className="flex items-center gap-1.5 active:scale-90 transition-transform"
+          >
+            <Info size={20} className="text-[#007AFF]" strokeWidth={1.5} />
+          </button>
           <button onClick={handleShare} className="flex items-center gap-1.5 ml-auto active:scale-90 transition-transform">
             <Share2 size={20} className="text-[#007AFF]" strokeWidth={1.5} />
           </button>
@@ -281,6 +329,48 @@ export default function PostDetail() {
           </div>
         )}
       </div>
+
+      {/* Discount Modal */}
+      {showDiscountModal && (
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center px-4">
+          <div className="bg-white dark:bg-[#1C1C1E] rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="text-[18px] font-semibold text-[#1C1C1E] dark:text-white mb-4">
+              Set Discount
+            </h3>
+            <div className="mb-4">
+              <label className="text-[14px] text-[#8E8E93] mb-2 block">Discount Percentage</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  step="5"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <span className="text-[20px] font-bold text-[#007AFF] w-16 text-right">
+                  {discountValue}%
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDiscountModal(false)}
+                className="flex-1 h-12 bg-gray-100 dark:bg-gray-800 text-[#1C1C1E] dark:text-white font-semibold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSetDiscount}
+                className="flex-1 h-12 bg-[#007AFF] text-white font-semibold rounded-xl"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Eye, Share2, Phone, X } from 'lucide-react';
+import { Heart, Eye, Share2, Phone, X, Info } from 'lucide-react';
 import type { Post } from '@/types';
 import { api } from '@/lib/api';
 import { LazyImage } from './LazyImage';
@@ -40,7 +40,12 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
   const [likeCount, setLikeCount] = useState(post.likeCount || post.likes || 0);
   const [heartAnim, setHeartAnim] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [imageScale, setImageScale] = useState(1);
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
   const [videoInView, setVideoInView] = useState(false);
 
   const prices = formatPrice(post.priceAFN || post.priceAfn || 0, post.priceUSD || post.priceUsd || 0);
@@ -124,6 +129,8 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
   const handleMediaClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowFullscreen(true);
+    setImageScale(1);
+    setImagePosition({ x: 0, y: 0 });
     // Track view when opening fullscreen
     try {
       api.batchViews([post.id]).catch(() => {});
@@ -134,6 +141,70 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
     navigate(`/post/${post.id}`);
   };
 
+  // Image zoom handlers
+  const handleImageTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      (imageContainerRef.current as any).__initialDistance = distance;
+      (imageContainerRef.current as any).__initialScale = imageScale;
+    } else if (e.touches.length === 1 && imageScale > 1) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.touches[0].clientX - imagePosition.x,
+        y: e.touches[0].clientY - imagePosition.y,
+      });
+    }
+  };
+
+  const handleImageTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const initialDistance = (imageContainerRef.current as any).__initialDistance || distance;
+      const initialScale = (imageContainerRef.current as any).__initialScale || 1;
+      const newScale = Math.min(Math.max(initialScale * (distance / initialDistance), 1), 4);
+      setImageScale(newScale);
+    } else if (e.touches.length === 1 && isDragging) {
+      setImagePosition({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleImageTouchEnd = () => {
+    setIsDragging(false);
+    if (imageScale < 1) {
+      setImageScale(1);
+      setImagePosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleImageDoubleClick = () => {
+    if (imageScale === 1) {
+      setImageScale(2.5);
+    } else {
+      setImageScale(1);
+      setImagePosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleImageWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newScale = Math.min(Math.max(imageScale + delta, 1), 4);
+    setImageScale(newScale);
+    if (newScale === 1) {
+      setImagePosition({ x: 0, y: 0 });
+    }
+  };
+
   return (
     <>
       <article
@@ -141,7 +212,7 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
         onClick={handleDetailClick}
       >
         {/* Media - Click to fullscreen */}
-        <div 
+        <div
           className="relative aspect-[4/3] bg-[#F2F2F7] dark:bg-[#2C2C2E] cursor-pointer"
           onClick={handleMediaClick}
         >
@@ -165,12 +236,12 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
             />
           )}
 
-          {/* Price Badge */}
-          <div className="absolute bottom-3 left-3 price-badge">
-            <p className="text-[20px] font-bold text-[#1C1C1E] leading-tight">
-              {prices.afn} <span className="text-[13px] font-medium">AFN</span>
+          {/* Price Badge - BLUE background */}
+          <div className="absolute bottom-3 left-3 bg-[#007AFF] text-white px-3 py-1.5 rounded-lg shadow-lg">
+            <p className="text-[18px] font-bold leading-tight">
+              {prices.afn} <span className="text-[12px] font-medium">AFN</span>
             </p>
-            <p className="text-[13px] font-medium text-[#8E8E93]">
+            <p className="text-[11px] font-medium text-white/80">
               ${prices.usd} USD
             </p>
           </div>
@@ -215,9 +286,9 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
             </p>
           ) : null}
 
-          {/* Stats row */}
+          {/* Stats row - with Info button */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
                 onClick={handleLike}
                 className={`flex items-center gap-1.5 ${heartAnim ? 'heart-bounce' : ''}`}
@@ -233,6 +304,16 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
                 <Eye size={18} className="text-[#8E8E93]" strokeWidth={1.5} />
                 <span className="text-[13px] font-medium text-[#8E8E93]">{post.views || 0}</span>
               </div>
+              {/* Info button - shows post details */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/post/${post.id}`);
+                }}
+                className="flex items-center gap-1.5 active:scale-90 transition-transform"
+              >
+                <Info size={18} className="text-[#007AFF]" strokeWidth={1.5} />
+              </button>
             </div>
             <button onClick={handleShare} className="active:scale-90 transition-transform">
               <Share2 size={18} className="text-[#8E8E93]" strokeWidth={1.5} />
@@ -250,19 +331,19 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
         </div>
       </article>
 
-      {/* Fullscreen Media Modal */}
+      {/* Fullscreen Media Modal with Zoom */}
       {showFullscreen && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
           onClick={() => setShowFullscreen(false)}
         >
-          <button 
+          <button
             className="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white z-10"
             onClick={() => setShowFullscreen(false)}
           >
             <X size={24} />
           </button>
-          
+
           {isVideo ? (
             <video
               src={mediaUrl}
@@ -272,12 +353,33 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
               className="max-w-full max-h-full"
             />
           ) : (
-            <img
-              src={mediaUrl}
-              alt={post.title}
-              className="max-w-full max-h-full object-contain"
-              style={{ touchAction: 'pinch-zoom' }}
-            />
+            <div
+              ref={imageContainerRef}
+              className="w-full h-full flex items-center justify-center overflow-hidden"
+              onTouchStart={handleImageTouchStart}
+              onTouchMove={handleImageTouchMove}
+              onTouchEnd={handleImageTouchEnd}
+              onDoubleClick={handleImageDoubleClick}
+              onWheel={handleImageWheel}
+              style={{ touchAction: 'none' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={mediaUrl}
+                alt={post.title}
+                className="max-w-full max-h-full transition-transform duration-200 ease-out"
+                style={{
+                  transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
+                  objectFit: 'contain',
+                }}
+                draggable={false}
+              />
+              {imageScale > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                  {Math.round(imageScale * 100)}% • Double tap to reset
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
