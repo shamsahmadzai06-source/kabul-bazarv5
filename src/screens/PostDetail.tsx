@@ -54,33 +54,32 @@ export default function PostDetail() {
     }
     if (!id) return;
     
-    // For demo posts, just toggle locally
+    // For demo posts, toggle locally
     if (id.startsWith('demo-')) {
-      setLiked(prev => {
-        const newLiked = !prev;
-        setLikeCount(prevCount => newLiked ? prevCount + 1 : prevCount - 1);
-        return newLiked;
-      });
+      const newLiked = !liked;
+      const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+      setLiked(newLiked);
+      setLikeCount(newCount);
       return;
     }
     
     try {
       const result = await api.likePost(id);
-      // API returns updated post data
       if (result && result.likeCount !== undefined) {
         setLiked(result.isLiked || false);
         setLikeCount(result.likeCount);
       } else {
-        // Fallback: toggle locally
-        setLiked(prev => {
-          const newLiked = !prev;
-          setLikeCount(prevCount => newLiked ? prevCount + 1 : prevCount - 1);
-          return newLiked;
-        });
+        const newLiked = !liked;
+        const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+        setLiked(newLiked);
+        setLikeCount(newCount);
       }
     } catch (err) { 
       console.error('Like error:', err);
-      toast.error('Failed to like'); 
+      const newLiked = !liked;
+      const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+      setLiked(newLiked);
+      setLikeCount(newCount);
     }
   };
 

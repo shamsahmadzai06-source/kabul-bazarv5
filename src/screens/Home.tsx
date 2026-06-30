@@ -17,6 +17,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const [useDemo, setUseDemo] = useState(false);
 
   const loadPosts = useCallback(async (pageNum: number, append = false) => {
     try {
@@ -33,11 +34,14 @@ export default function Home() {
         setPosts(newPosts);
       }
       setHasMore(newPosts.length === 20);
+      setUseDemo(false);
     } catch (err) {
-      toast.error('Failed to load posts');
-      // Use demo data if API fails
+      console.error('Failed to load posts:', err);
+      // Use demo data if API fails (no login required)
       if (!append) {
-        setPosts(getDemoPosts());
+        const demoData = getDemoPosts();
+        setPosts(demoData);
+        setUseDemo(true);
       }
     } finally {
       setLoading(false);
@@ -54,7 +58,7 @@ export default function Home() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasMore && !loading && page < 5) {
+        if (entry.isIntersecting && hasMore && !loading && page < 5 && !useDemo) {
           setPage((p) => p + 1);
           loadPosts(page + 1, true);
         }
@@ -63,7 +67,7 @@ export default function Home() {
     );
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, page, loadPosts]);
+  }, [hasMore, loading, page, loadPosts, useDemo]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -89,6 +93,13 @@ export default function Home() {
             >
               Clear
             </button>
+          </div>
+        )}
+
+        {/* Demo mode indicator */}
+        {useDemo && (
+          <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
+            <p className="text-[13px] text-[#007AFF]">Showing demo posts - Login to see real posts</p>
           </div>
         )}
 
@@ -140,7 +151,7 @@ export default function Home() {
   );
 }
 
-// Demo data fallback
+// Demo data fallback - works without login
 function getDemoPosts(): Post[] {
   return [
     {
@@ -150,7 +161,7 @@ function getDemoPosts(): Post[] {
       mediaUrl: '/images/post1.jpg', mediaType: 'image',
       sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Tech', authorName: 'Kabul Tech',
       authorAvatar: '/icons/logo.png', authorType: 'admin',
-      likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 3600000 * 2 + '', status: 'active', isSold: 0,
+      likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 3600000 * 2 + '', status: 'active', isSold: 0, isLiked: false,
     },
     {
       id: 'demo-2', title: 'Traditional Afghan Dress', description: 'Hand embroidered, perfect for weddings.',
@@ -159,7 +170,7 @@ function getDemoPosts(): Post[] {
       mediaUrl: '/images/post2.jpg', mediaType: 'image',
       sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Herat Fashion', authorName: 'Herat Fashion',
       authorAvatar: '/icons/logo.png', authorType: 'seller',
-      likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 3600000 * 5 + '', status: 'active', isSold: 0,
+      likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 3600000 * 5 + '', status: 'active', isSold: 0, isLiked: false,
     },
     {
       id: 'demo-3', title: 'Toyota Corolla 2019', description: 'Well maintained, 80k km.',
@@ -168,7 +179,7 @@ function getDemoPosts(): Post[] {
       mediaUrl: '/images/post3.jpg', mediaType: 'image',
       sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Motors', authorName: 'Kabul Motors',
       authorAvatar: '/icons/logo.png', authorType: 'seller',
-      likes: 42, likeCount: 42, views: 312, createdAt: Date.now() - 3600000 * 12 + '', status: 'active', isSold: 0,
+      likes: 42, likeCount: 42, views: 312, createdAt: Date.now() - 3600000 * 12 + '', status: 'active', isSold: 0, isLiked: false,
     },
     {
       id: 'demo-4', title: 'Fresh Organic Honey', description: 'Pure mountain honey from Nuristan, 1kg.',
@@ -177,7 +188,7 @@ function getDemoPosts(): Post[] {
       mediaUrl: '/images/post4.jpg', mediaType: 'image',
       sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Nuristan Farms', authorName: 'Nuristan Farms',
       authorAvatar: '/icons/logo.png', authorType: 'seller',
-      likes: 12, likeCount: 12, views: 67, createdAt: Date.now() - 3600000 * 18 + '', status: 'active', isSold: 0,
+      likes: 12, likeCount: 12, views: 67, createdAt: Date.now() - 3600000 * 18 + '', status: 'active', isSold: 0, isLiked: false,
     },
     {
       id: 'demo-5', title: 'Web Development Service', description: 'Professional website and mobile app.',
@@ -186,7 +197,7 @@ function getDemoPosts(): Post[] {
       mediaUrl: '/images/post5.jpg', mediaType: 'image',
       sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Tech Solutions', authorName: 'Tech Solutions',
       authorAvatar: '/icons/logo.png', authorType: 'seller',
-      likes: 8, likeCount: 8, views: 45, createdAt: Date.now() - 3600000 * 24 + '', status: 'active', isSold: 0,
+      likes: 8, likeCount: 8, views: 45, createdAt: Date.now() - 3600000 * 24 + '', status: 'active', isSold: 0, isLiked: false,
     },
     {
       id: 'demo-6', title: 'Samsung Galaxy S24', description: 'Latest model, 128GB, unlocked.',
@@ -195,7 +206,7 @@ function getDemoPosts(): Post[] {
       mediaUrl: '/images/post6.jpg', mediaType: 'image',
       sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Mobile', authorName: 'Kabul Mobile',
       authorAvatar: '/icons/logo.png', authorType: 'seller',
-      likes: 31, likeCount: 31, views: 198, createdAt: Date.now() - 3600000 * 30 + '', status: 'active', isSold: 0,
+      likes: 31, likeCount: 31, views: 198, createdAt: Date.now() - 3600000 * 30 + '', status: 'active', isSold: 0, isLiked: false,
     },
   ];
 }

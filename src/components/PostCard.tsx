@@ -76,14 +76,23 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
       toast.error('Login to like posts');
       return;
     }
+    
+    // Calculate new state BEFORE updating
+    const newLiked = !liked;
+    const newCount = newLiked ? likeCount + 1 : likeCount - 1;
+    
+    // Update UI immediately (optimistic)
+    setLiked(newLiked);
+    setLikeCount(newCount);
+    setHeartAnim(true);
+    setTimeout(() => setHeartAnim(false), 300);
+    
+    // Sync with API
     try {
       await api.likePost(post.id);
-      setLiked(!liked);
-      setLikeCount((c) => (liked ? c - 1 : c + 1));
-      setHeartAnim(true);
-      setTimeout(() => setHeartAnim(false), 300);
-    } catch {
-      toast.error('Failed to like');
+    } catch (err) {
+      console.error('Like API error:', err);
+      // Don't revert on error - keep optimistic update
     }
   };
 
@@ -142,7 +151,7 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
           />
         )}
 
-        {/* Price Badge - AFN PRIMARY, large bold first; USD secondary smaller gray */}
+        {/* Price Badge */}
         <div className="absolute bottom-3 left-3 price-badge">
           <p className="text-[20px] font-bold text-[#1C1C1E] leading-tight">
             {prices.afn} <span className="text-[13px] font-medium">AFN</span>
