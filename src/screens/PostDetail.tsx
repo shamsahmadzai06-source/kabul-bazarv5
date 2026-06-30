@@ -32,14 +32,15 @@ export default function PostDetail() {
       setLikeCount(data.likeCount || data.likes || 0);
     } catch {
       const demoPosts = [
-        { id: 'demo-1', title: 'iPhone 15 Pro Max', description: 'Brand new, 256GB, Natural Titanium.', priceAfn: 104400, priceAFN: 104400, priceUsd: 1200, priceUSD: 1200, media: [{ id: 'm1', url: '/images/post1.jpg', type: 'image' }], mediaUrl: '/images/post1.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Tech', authorName: 'Kabul Tech', authorAvatar: '/icons/logo.png', authorType: 'admin', likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 7200000 + '', status: 'active', isSold: 0, authorWhatsApp: '+93700000001' },
-        { id: 'demo-2', title: 'Traditional Afghan Dress', description: 'Hand embroidered, perfect for weddings.', priceAfn: 7395, priceAFN: 7395, priceUsd: 85, priceUSD: 85, media: [{ id: 'm2', url: '/images/post2.jpg', type: 'image' }], mediaUrl: '/images/post2.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Herat Fashion', authorName: 'Herat Fashion', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 18000000 + '', status: 'active', isSold: 0, authorWhatsApp: '+93700000002' },
-        { id: 'demo-3', title: 'Toyota Corolla 2019', description: 'Well maintained, 80k km.', priceAfn: 739500, priceAFN: 739500, priceUsd: 8500, priceUSD: 8500, media: [{ id: 'm3', url: '/images/post3.jpg', type: 'image' }], mediaUrl: '/images/post3.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Motors', authorName: 'Kabul Motors', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 42, likeCount: 42, views: 312, createdAt: Date.now() - 43200000 + '', status: 'active', isSold: 0, authorWhatsApp: '+93700000003' },
+        { id: 'demo-1', title: 'iPhone 15 Pro Max', description: 'Brand new, 256GB, Natural Titanium.', priceAfn: 104400, priceAFN: 104400, priceUsd: 1200, priceUSD: 1200, media: [{ id: 'm1', url: '/images/post1.jpg', type: 'image' }], mediaUrl: '/images/post1.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Tech', authorName: 'Kabul Tech', authorAvatar: '/icons/logo.png', authorType: 'admin', likes: 24, likeCount: 24, views: 156, createdAt: Date.now() - 7200000 + '', status: 'active', isSold: 0, isLiked: false, authorWhatsApp: '+93700000001' },
+        { id: 'demo-2', title: 'Traditional Afghan Dress', description: 'Hand embroidered, perfect for weddings.', priceAfn: 7395, priceAFN: 7395, priceUsd: 85, priceUSD: 85, media: [{ id: 'm2', url: '/images/post2.jpg', type: 'image' }], mediaUrl: '/images/post2.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Herat Fashion', authorName: 'Herat Fashion', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 18, likeCount: 18, views: 89, createdAt: Date.now() - 18000000 + '', status: 'active', isSold: 0, isLiked: false, authorWhatsApp: '+93700000002' },
+        { id: 'demo-3', title: 'Toyota Corolla 2019', description: 'Well maintained, 80k km.', priceAfn: 739500, priceAFN: 739500, priceUsd: 8500, priceUSD: 8500, media: [{ id: 'm3', url: '/images/post3.jpg', type: 'image' }], mediaUrl: '/images/post3.jpg', mediaType: 'image', sellerId: 'admin_001', authorId: 'admin_001', sellerName: 'Kabul Motors', authorName: 'Kabul Motors', authorAvatar: '/icons/logo.png', authorType: 'seller', likes: 42, likeCount: 42, views: 312, createdAt: Date.now() - 43200000 + '', status: 'active', isSold: 0, isLiked: false, authorWhatsApp: '+93700000003' },
       ];
       const found = demoPosts.find(p => p.id === id);
       if (found) {
         setPost(found as Post);
-        setLikeCount(found.likeCount);
+        setLiked(found.isLiked || false);
+        setLikeCount(found.likeCount || found.likes || 0);
       }
     } finally {
       setLoading(false);
@@ -47,23 +48,57 @@ export default function PostDetail() {
   };
 
   const handleLike = async () => {
-    if (!user) { toast.error('Login to like'); return; }
+    if (!user) { 
+      toast.error('Login to like'); 
+      return; 
+    }
+    if (!id) return;
+    
+    // For demo posts, just toggle locally
+    if (id.startsWith('demo-')) {
+      setLiked(prev => {
+        const newLiked = !prev;
+        setLikeCount(prevCount => newLiked ? prevCount + 1 : prevCount - 1);
+        return newLiked;
+      });
+      return;
+    }
+    
     try {
-      await api.likePost(id!);
-      setLiked(!liked);
-      setLikeCount(c => liked ? c - 1 : c + 1);
-    } catch { toast.error('Failed'); }
+      const result = await api.likePost(id);
+      // API returns updated post data
+      if (result && result.likeCount !== undefined) {
+        setLiked(result.isLiked || false);
+        setLikeCount(result.likeCount);
+      } else {
+        // Fallback: toggle locally
+        setLiked(prev => {
+          const newLiked = !prev;
+          setLikeCount(prevCount => newLiked ? prevCount + 1 : prevCount - 1);
+          return newLiked;
+        });
+      }
+    } catch (err) { 
+      console.error('Like error:', err);
+      toast.error('Failed to like'); 
+    }
   };
 
   const handleShare = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: post?.title, text: `${post?.title} - ${post?.priceAFN || post?.priceAfn} AFN`, url: window.location.href });
+        await navigator.share({ 
+          title: post?.title, 
+          text: `${post?.title} - ${post?.priceAFN || post?.priceAfn} AFN`, 
+          url: window.location.href 
+        });
       } else {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Link copied!');
       }
-    } catch { toast.error('Share failed'); }
+    } catch { 
+      toast.error('Share failed'); 
+    }
   };
 
   const handleDelete = async () => {
@@ -72,7 +107,9 @@ export default function PostDetail() {
       await api.deletePost(id!);
       toast.success('Deleted');
       navigate('/');
-    } catch { toast.error('Delete failed'); }
+    } catch { 
+      toast.error('Delete failed'); 
+    }
   };
 
   const handleToggleSold = async () => {
@@ -80,7 +117,9 @@ export default function PostDetail() {
       await api.toggleSold(id!);
       toast.success(post?.isSold ? 'Marked active' : 'Marked sold');
       loadPost();
-    } catch { toast.error('Failed'); }
+    } catch { 
+      toast.error('Failed'); 
+    }
   };
 
   const handleWhatsApp = () => {
@@ -204,7 +243,7 @@ export default function PostDetail() {
 
         {/* Stats */}
         <div className="flex items-center gap-5 mb-5">
-          <button onClick={handleLike} className="flex items-center gap-1.5">
+          <button onClick={handleLike} className="flex items-center gap-1.5 active:scale-90 transition-transform">
             <Heart size={20} className={liked ? 'text-[#FF3B30] fill-[#FF3B30]' : 'text-[#8E8E93]'} strokeWidth={liked ? 2.5 : 1.5} />
             <span className="text-[14px] text-[#8E8E93] font-medium">{likeCount}</span>
           </button>
@@ -212,7 +251,7 @@ export default function PostDetail() {
             <Eye size={20} className="text-[#8E8E93]" strokeWidth={1.5} />
             <span className="text-[14px] text-[#8E8E93] font-medium">{post.views || 0}</span>
           </div>
-          <button onClick={handleShare} className="flex items-center gap-1.5 ml-auto">
+          <button onClick={handleShare} className="flex items-center gap-1.5 ml-auto active:scale-90 transition-transform">
             <Share2 size={20} className="text-[#007AFF]" strokeWidth={1.5} />
           </button>
         </div>
