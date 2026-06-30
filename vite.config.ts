@@ -34,14 +34,8 @@ export default defineConfig({
           if (id.includes('zustand')) {
             return 'state';
           }
-          if (id.includes('three')) {
-            return 'three-js';
-          }
           if (id.includes('recharts')) {
             return 'charts';
-          }
-          if (id.includes('gsap')) {
-            return 'gsap';
           }
         },
       },

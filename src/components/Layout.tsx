@@ -13,9 +13,9 @@ export function Layout() {
   const shouldHideTopMenu = hideTopMenuPaths.some(p => path.startsWith(p));
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background w-full">
       {!shouldHideTopMenu && <TopMenu />}
-      <main className="flex-1 overflow-y-auto no-scrollbar">
+      <main className="flex-1 overflow-y-auto no-scrollbar w-full">
         <Outlet />
       </main>
       {!shouldHideTabBar && <BottomTab />}

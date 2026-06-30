@@ -4,6 +4,7 @@ import { ChevronLeft, Heart, Eye, Share2, Phone, MoreVertical, Trash2, CheckCirc
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { ZoomableImage } from '@/components/ZoomableImage';
 import { toast } from 'sonner';
 import type { Post } from '@/types';
 
@@ -128,14 +129,7 @@ export default function PostDetail() {
             className="w-full"
           />
         ) : (
-          <div className="w-full" style={{ touchAction: 'pan-x pan-y pinch-zoom' }}>
-            <img 
-              src={mediaUrl} 
-              alt={post.title} 
-              className="w-full h-auto object-contain"
-              style={{ maxWidth: '100%' }}
-            />
-          </div>
+          <ZoomableImage src={mediaUrl} alt={post.title} />
         )}
 
         {/* Back button */}
