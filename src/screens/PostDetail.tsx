@@ -21,7 +21,18 @@ export default function PostDetail() {
   useEffect(() => {
     if (!id) return;
     loadPost();
+    trackView();
   }, [id]);
+
+  const trackView = async () => {
+    if (!id) return;
+    try {
+      await api.batchViews([id]);
+      setPost(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : null);
+    } catch (err) {
+      console.log('View tracking failed:', err);
+    }
+  };
 
   const loadPost = async () => {
     try {
@@ -48,13 +59,12 @@ export default function PostDetail() {
   };
 
   const handleLike = async () => {
-    if (!user) { 
-      toast.error('Login to like'); 
-      return; 
+    if (!user) {
+      toast.error('Login to like');
+      return;
     }
     if (!id) return;
-    
-    // For demo posts, toggle locally
+
     if (id.startsWith('demo-')) {
       const newLiked = !liked;
       const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
@@ -62,7 +72,7 @@ export default function PostDetail() {
       setLikeCount(newCount);
       return;
     }
-    
+
     try {
       const result = await api.likePost(id);
       if (result && result.likeCount !== undefined) {
@@ -74,7 +84,7 @@ export default function PostDetail() {
         setLiked(newLiked);
         setLikeCount(newCount);
       }
-    } catch (err) { 
+    } catch (err) {
       console.error('Like error:', err);
       const newLiked = !liked;
       const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
@@ -86,17 +96,17 @@ export default function PostDetail() {
   const handleShare = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ 
-          title: post?.title, 
-          text: `${post?.title} - ${post?.priceAFN || post?.priceAfn} AFN`, 
-          url: window.location.href 
+        await navigator.share({
+          title: post?.title,
+          text: `${post?.title} - ${post?.priceAFN || post?.priceAfn} AFN`,
+          url: window.location.href
         });
       } else {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Link copied!');
       }
-    } catch { 
-      toast.error('Share failed'); 
+    } catch {
+      toast.error('Share failed');
     }
   };
 
@@ -106,8 +116,8 @@ export default function PostDetail() {
       await api.deletePost(id!);
       toast.success('Deleted');
       navigate('/');
-    } catch { 
-      toast.error('Delete failed'); 
+    } catch {
+      toast.error('Delete failed');
     }
   };
 
@@ -116,8 +126,8 @@ export default function PostDetail() {
       await api.toggleSold(id!);
       toast.success(post?.isSold ? 'Marked active' : 'Marked sold');
       loadPost();
-    } catch { 
-      toast.error('Failed'); 
+    } catch {
+      toast.error('Failed');
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Eye, Share2, Phone } from 'lucide-react';
+import { Heart, Eye, Share2, Phone, X } from 'lucide-react';
 import type { Post } from '@/types';
 import { api } from '@/lib/api';
 import { LazyImage } from './LazyImage';
@@ -39,6 +39,7 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
   const [liked, setLiked] = useState(post.isLiked || false);
   const [likeCount, setLikeCount] = useState(post.likeCount || post.likes || 0);
   const [heartAnim, setHeartAnim] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoInView, setVideoInView] = useState(false);
 
@@ -76,23 +77,19 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
       toast.error('Login to like posts');
       return;
     }
-    
-    // Calculate new state BEFORE updating
+
     const newLiked = !liked;
     const newCount = newLiked ? likeCount + 1 : likeCount - 1;
-    
-    // Update UI immediately (optimistic)
+
     setLiked(newLiked);
     setLikeCount(newCount);
     setHeartAnim(true);
     setTimeout(() => setHeartAnim(false), 300);
-    
-    // Sync with API
+
     try {
       await api.likePost(post.id);
     } catch (err) {
       console.error('Like API error:', err);
-      // Don't revert on error - keep optimistic update
     }
   };
 
@@ -124,116 +121,166 @@ export const PostCard = memo(function PostCard({ post, index }: PostCardProps) {
     }
   };
 
+  const handleMediaClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowFullscreen(true);
+    // Track view when opening fullscreen
+    try {
+      api.batchViews([post.id]).catch(() => {});
+    } catch {}
+  };
+
+  const handleDetailClick = () => {
+    navigate(`/post/${post.id}`);
+  };
+
   return (
-    <article
-      className="bg-white dark:bg-[#1C1C1E] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-3 active:scale-[0.99] transition-transform"
-      onClick={() => navigate(`/post/${post.id}`)}
-    >
-      {/* Media */}
-      <div className="relative aspect-[4/3] bg-[#F2F2F7] dark:bg-[#2C2C2E]">
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={mediaUrl}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster={mediaUrl.replace(/\.[^.]+$/, '.jpg')}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <LazyImage
-            src={mediaUrl}
-            alt={post.title}
-            className="w-full h-full"
-            priority={index < 2}
-          />
-        )}
+    <>
+      <article
+        className="bg-white dark:bg-[#1C1C1E] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-3 active:scale-[0.99] transition-transform"
+        onClick={handleDetailClick}
+      >
+        {/* Media - Click to fullscreen */}
+        <div 
+          className="relative aspect-[4/3] bg-[#F2F2F7] dark:bg-[#2C2C2E] cursor-pointer"
+          onClick={handleMediaClick}
+        >
+          {isVideo ? (
+            <video
+              ref={videoRef}
+              src={mediaUrl}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={mediaUrl.replace(/\.[^.]+$/, '.jpg')}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <LazyImage
+              src={mediaUrl}
+              alt={post.title}
+              className="w-full h-full"
+              priority={index < 2}
+            />
+          )}
 
-        {/* Price Badge */}
-        <div className="absolute bottom-3 left-3 price-badge">
-          <p className="text-[20px] font-bold text-[#1C1C1E] leading-tight">
-            {prices.afn} <span className="text-[13px] font-medium">AFN</span>
-          </p>
-          <p className="text-[13px] font-medium text-[#8E8E93]">
-            ${prices.usd} USD
-          </p>
-        </div>
-
-        {/* Sold badge */}
-        {post.isSold ? (
-          <div className="absolute top-3 right-3 bg-[#34C759] text-white text-xs font-bold px-2.5 py-1 rounded-lg">
-            SOLD
-          </div>
-        ) : null}
-      </div>
-
-      {/* Content */}
-      <div className="p-3">
-        {/* Seller info */}
-        <div className="flex items-center gap-2 mb-2">
-          <img
-            src={avatarUrl}
-            alt={sellerName}
-            className="w-8 h-8 rounded-full object-cover border border-gray-200"
-            loading="lazy"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-semibold text-[#1C1C1E] dark:text-white truncate">
-              {sellerName}
+          {/* Price Badge */}
+          <div className="absolute bottom-3 left-3 price-badge">
+            <p className="text-[20px] font-bold text-[#1C1C1E] leading-tight">
+              {prices.afn} <span className="text-[13px] font-medium">AFN</span>
+            </p>
+            <p className="text-[13px] font-medium text-[#8E8E93]">
+              ${prices.usd} USD
             </p>
           </div>
-          <span className="text-[11px] text-[#8E8E93] shrink-0">
-            {timeAgo(post.createdAt)}
-          </span>
+
+          {/* Sold badge */}
+          {post.isSold ? (
+            <div className="absolute top-3 right-3 bg-[#34C759] text-white text-xs font-bold px-2.5 py-1 rounded-lg">
+              SOLD
+            </div>
+          ) : null}
         </div>
 
-        {/* Title */}
-        <h3 className="text-[16px] font-semibold text-[#1C1C1E] dark:text-white mb-1 leading-snug">
-          {post.title}
-        </h3>
-
-        {/* Description */}
-        {post.description || post.info ? (
-          <p className="text-[14px] text-[#8E8E93] line-clamp-2 mb-3 leading-relaxed">
-            {post.description || post.info}
-          </p>
-        ) : null}
-
-        {/* Stats row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-1.5 ${heartAnim ? 'heart-bounce' : ''}`}
-            >
-              <Heart
-                size={18}
-                className={liked ? 'text-[#FF3B30] fill-[#FF3B30]' : 'text-[#8E8E93]'}
-                strokeWidth={liked ? 2.5 : 1.5}
-              />
-              <span className="text-[13px] font-medium text-[#8E8E93]">{likeCount}</span>
-            </button>
-            <div className="flex items-center gap-1.5">
-              <Eye size={18} className="text-[#8E8E93]" strokeWidth={1.5} />
-              <span className="text-[13px] font-medium text-[#8E8E93]">{post.views || 0}</span>
+        {/* Content */}
+        <div className="p-3">
+          {/* Seller info */}
+          <div className="flex items-center gap-2 mb-2">
+            <img
+              src={avatarUrl}
+              alt={sellerName}
+              className="w-8 h-8 rounded-full object-cover border border-gray-200"
+              loading="lazy"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-semibold text-[#1C1C1E] dark:text-white truncate">
+                {sellerName}
+              </p>
             </div>
+            <span className="text-[11px] text-[#8E8E93] shrink-0">
+              {timeAgo(post.createdAt)}
+            </span>
           </div>
-          <button onClick={handleShare} className="active:scale-90 transition-transform">
-            <Share2 size={18} className="text-[#8E8E93]" strokeWidth={1.5} />
+
+          {/* Title */}
+          <h3 className="text-[16px] font-semibold text-[#1C1C1E] dark:text-white mb-1 leading-snug">
+            {post.title}
+          </h3>
+
+          {/* Description */}
+          {post.description || post.info ? (
+            <p className="text-[14px] text-[#8E8E93] line-clamp-2 mb-3 leading-relaxed">
+              {post.description || post.info}
+            </p>
+          ) : null}
+
+          {/* Stats row */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLike}
+                className={`flex items-center gap-1.5 ${heartAnim ? 'heart-bounce' : ''}`}
+              >
+                <Heart
+                  size={18}
+                  className={liked ? 'text-[#FF3B30] fill-[#FF3B30]' : 'text-[#8E8E93]'}
+                  strokeWidth={liked ? 2.5 : 1.5}
+                />
+                <span className="text-[13px] font-medium text-[#8E8E93]">{likeCount}</span>
+              </button>
+              <div className="flex items-center gap-1.5">
+                <Eye size={18} className="text-[#8E8E93]" strokeWidth={1.5} />
+                <span className="text-[13px] font-medium text-[#8E8E93]">{post.views || 0}</span>
+              </div>
+            </div>
+            <button onClick={handleShare} className="active:scale-90 transition-transform">
+              <Share2 size={18} className="text-[#8E8E93]" strokeWidth={1.5} />
+            </button>
+          </div>
+
+          {/* WhatsApp CTA */}
+          <button
+            onClick={handleWhatsApp}
+            className="w-full h-11 bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold text-[15px] rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+          >
+            <Phone size={18} />
+            Contact Seller
           </button>
         </div>
+      </article>
 
-        {/* WhatsApp CTA */}
-        <button
-          onClick={handleWhatsApp}
-          className="w-full h-11 bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold text-[15px] rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+      {/* Fullscreen Media Modal */}
+      {showFullscreen && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+          onClick={() => setShowFullscreen(false)}
         >
-          <Phone size={18} />
-          Contact Seller
-        </button>
-      </div>
-    </article>
+          <button 
+            className="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white z-10"
+            onClick={() => setShowFullscreen(false)}
+          >
+            <X size={24} />
+          </button>
+          
+          {isVideo ? (
+            <video
+              src={mediaUrl}
+              controls
+              autoPlay
+              playsInline
+              className="max-w-full max-h-full"
+            />
+          ) : (
+            <img
+              src={mediaUrl}
+              alt={post.title}
+              className="max-w-full max-h-full object-contain"
+              style={{ touchAction: 'pinch-zoom' }}
+            />
+          )}
+        </div>
+      )}
+    </>
   );
 });
