@@ -37,8 +37,8 @@ export default function Home() {
       setUseDemo(false);
     } catch (err) {
       console.error('Failed to load posts:', err);
-      // Use demo data if API fails (no login required)
-      if (!append) {
+      // Only use demo if API completely fails AND no posts loaded yet
+      if (!append && posts.length === 0) {
         const demoData = getDemoPosts();
         setPosts(demoData);
         setUseDemo(true);
@@ -99,7 +99,7 @@ export default function Home() {
         {/* Demo mode indicator */}
         {useDemo && (
           <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
-            <p className="text-[13px] text-[#007AFF]">Showing demo posts - Login to see real posts</p>
+            <p className="text-[13px] text-[#007AFF]">Connection issue - Showing sample posts</p>
           </div>
         )}
 
@@ -151,7 +151,7 @@ export default function Home() {
   );
 }
 
-// Demo data fallback - works without login
+// Demo data fallback - only shows if API completely fails
 function getDemoPosts(): Post[] {
   return [
     {
