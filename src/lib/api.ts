@@ -45,7 +45,6 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
 }
 
 export const api = {
-  // Auth
   signup: (data: { name: string; email: string; phone?: string; password: string; isSellerRequest?: boolean; businessName?: string; description?: string }) =>
     fetchApi('/api/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
 
@@ -71,7 +70,6 @@ export const api = {
   updateProfile: (data: Partial<{ name: string; lastName: string; phone: string; whatsapp: string; bio: string; shopAddress: string; binanceId: string; usdtTrc20: string }>) =>
     fetchApi('/api/users/profile', { method: 'PATCH', body: JSON.stringify(data) }),
 
-  // Posts
   getPosts: (params?: { page?: number; limit?: number; search?: string; authorId?: string }) => {
     const qs = new URLSearchParams();
     if (params?.page) qs.set('page', String(params.page));
@@ -94,6 +92,9 @@ export const api = {
 
   toggleSold: (id: string) => fetchApi(`/api/posts/${id}/sold`, { method: 'PATCH' }),
 
+  updateDiscount: (id: string, data: { discountPrice?: number; discountPercent?: number }) =>
+    fetchApi(`/api/posts/${id}/discount`, { method: 'PATCH', body: JSON.stringify(data) }),
+
   deletePost: (id: string) => fetchApi(`/api/posts/${id}`, { method: 'DELETE' }),
 
   getUserPosts: (userId: string) => fetchApi(`/api/posts/user/${userId}`),
@@ -101,7 +102,6 @@ export const api = {
   batchViews: (postIds: string[]) =>
     fetchApi('/api/posts/views/batch', { method: 'POST', body: JSON.stringify({ postIds }) }),
 
-  // Messages
   getConversations: () => fetchApi('/api/messages/conversations'),
 
   getAdminConversation: () => fetchApi('/api/messages/admin-conversation', { method: 'POST' }),
@@ -112,7 +112,6 @@ export const api = {
   sendMessage: (data: { conversationId: string; content: string; recipientId?: string }) =>
     fetchApi('/api/messages', { method: 'POST', body: JSON.stringify(data) }),
 
-  // Notifications
   getNotifications: () => fetchApi('/api/notifications'),
 
   getUnreadCount: () => fetchApi('/api/notifications/unread'),
@@ -121,11 +120,9 @@ export const api = {
 
   markAllRead: () => fetchApi('/api/notifications/read-all', { method: 'POST' }),
 
-  // Seller requests
   applySeller: (data: { businessName: string; description: string; phone: string }) =>
     fetchApi('/api/seller-requests', { method: 'POST', body: JSON.stringify(data) }),
 
-  // Admin
   getAdminStats: () => fetchApi('/api/admin/stats'),
 
   getPendingRequests: () => fetchApi('/api/admin/seller-requests'),
@@ -147,7 +144,20 @@ export const api = {
   saveSettings: (data: { binanceId: string; usdtAddress: string }) =>
     fetchApi('/api/admin/settings', { method: 'POST', body: JSON.stringify(data) }),
 
-  // Tracking
+  getAds: (position?: string) => fetchApi(`/api/ads?position=${position || 'home'}`),
+
+  clickAd: (adId: string) => fetchApi('/api/ads/click', { method: 'POST', body: JSON.stringify({ adId }) }),
+
+  getAdminAds: () => fetchApi('/api/admin/ads'),
+
+  createAd: (data: { title: string; imageUrl: string; linkUrl: string; position?: string; priority?: number }) =>
+    fetchApi('/api/admin/ads', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateAd: (id: string, data: Partial<{ title: string; imageUrl: string; linkUrl: string; position: string; priority: number; isActive: number }>) =>
+    fetchApi(`/api/admin/ads/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteAd: (id: string) => fetchApi(`/api/admin/ads/${id}`, { method: 'DELETE' }),
+
   track: (data: Record<string, unknown>) =>
     fetchApi('/api/track', { method: 'POST', body: JSON.stringify(data) }),
 

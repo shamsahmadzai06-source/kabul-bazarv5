@@ -1,12 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Users, ShoppingBag, UserCheck, AlertCircle, TrendingUp, Settings, CheckCircle, XCircle } from 'lucide-react';
+import { ChevronLeft, Users, ShoppingBag, UserCheck, AlertCircle, TrendingUp, Settings, CheckCircle, XCircle, Plus, Image, Trash2, Edit3, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
 import { toast } from 'sonner';
 import type { SellerRequest, Post, User } from '@/types';
 
-type AdminTab = 'overview' | 'requests' | 'posts' | 'sellers' | 'users' | 'settings';
+type AdminTab = 'overview' | 'requests' | 'posts' | 'sellers' | 'users' | 'settings' | 'ads';
+
+interface Ad {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  position: string;
+  isActive: number;
+  priority: number;
+  clickCount: number;
+  createdAt: number;
+}
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -16,9 +28,12 @@ export default function Admin() {
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allSellers, setAllSellers] = useState<User[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
   const [binanceId, setBinanceId] = useState('');
   const [usdtAddress, setUsdtAddress] = useState('');
-
+  const [showAdForm, setShowAdForm] = useState(false);
+  const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [adForm, setAdForm] = useState({ title: '', imageUrl: '', linkUrl: '', position: 'home', priority: '0' });
 
   useEffect(() => {
     if (!user?.isAdmin) return;
@@ -27,6 +42,7 @@ export default function Admin() {
     loadPosts();
     loadUsers();
     loadSellers();
+    loadAds();
   }, [user]);
 
   const loadStats = async () => {
@@ -61,6 +77,13 @@ export default function Admin() {
     try {
       const data = await api.getSellers();
       setAllSellers(Array.isArray(data) ? data : []);
+    } catch { /* silent */ }
+  };
+
+  const loadAds = async () => {
+    try {
+      const data = await api.getAdminAds();
+      setAds(Array.isArray(data) ? data : []);
     } catch { /* silent */ }
   };
 
@@ -109,18 +132,81 @@ export default function Admin() {
     } catch { toast.error('Failed'); }
   };
 
+  const handleCreateAd = async () => {
+    try {
+      await api.createAd({
+        title: adForm.title,
+        imageUrl: adForm.imageUrl,
+        linkUrl: adForm.linkUrl,
+        position: adForm.position,
+        priority: parseInt(adForm.priority) || 0
+      });
+      toast.success('Ad created!');
+      setShowAdForm(false);
+      setAdForm({ title: '', imageUrl: '', linkUrl: '', position: 'home', priority: '0' });
+      loadAds();
+    } catch { toast.error('Failed to create ad'); }
+  };
+
+  const handleUpdateAd = async () => {
+    if (!editingAd) return;
+    try {
+      await api.updateAd(editingAd.id, {
+        title: adForm.title,
+        imageUrl: adForm.imageUrl,
+        linkUrl: adForm.linkUrl,
+        position: adForm.position,
+        priority: parseInt(adForm.priority) || 0
+      });
+      toast.success('Ad updated!');
+      setEditingAd(null);
+      setShowAdForm(false);
+      setAdForm({ title: '', imageUrl: '', linkUrl: '', position: 'home', priority: '0' });
+      loadAds();
+    } catch { toast.error('Failed to update ad'); }
+  };
+
+  const handleToggleAd = async (ad: Ad) => {
+    try {
+      await api.updateAd(ad.id, { isActive: ad.isActive === 1 ? 0 : 1 });
+      toast.success(ad.isActive === 1 ? 'Ad deactivated' : 'Ad activated');
+      loadAds();
+    } catch { toast.error('Failed'); }
+  };
+
+  const handleDeleteAd = async (id: string) => {
+    if (!confirm('Delete this ad?')) return;
+    try {
+      await api.deleteAd(id);
+      toast.success('Ad deleted');
+      loadAds();
+    } catch { toast.error('Failed'); }
+  };
+
+  const openEditAd = (ad: Ad) => {
+    setEditingAd(ad);
+    setAdForm({
+      title: ad.title,
+      imageUrl: ad.imageUrl,
+      linkUrl: ad.linkUrl,
+      position: ad.position,
+      priority: String(ad.priority)
+    });
+    setShowAdForm(true);
+  };
+
   const tabs: { key: AdminTab; label: string; icon: React.ElementType }[] = [
     { key: 'overview', label: 'Overview', icon: TrendingUp },
     { key: 'requests', label: 'Requests', icon: AlertCircle },
     { key: 'posts', label: 'Posts', icon: ShoppingBag },
     { key: 'sellers', label: 'Sellers', icon: UserCheck },
     { key: 'users', label: 'Users', icon: Users },
+    { key: 'ads', label: 'Ads', icon: Image },
     { key: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
     <div className="min-h-full bg-[#F2F2F7] dark:bg-black pb-8">
-      {/* Header */}
       <div className="bg-white dark:bg-[#1C1C1E] px-4 py-3 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800">
         <button onClick={() => navigate('/')} className="text-[#007AFF]">
           <ChevronLeft size={24} />
@@ -128,7 +214,6 @@ export default function Admin() {
         <h1 className="text-[17px] font-semibold text-[#1C1C1E] dark:text-white">Admin Panel</h1>
       </div>
 
-      {/* Tab Navigation */}
       <div className="bg-white dark:bg-[#1C1C1E] px-4 py-2 border-b border-gray-200 dark:border-gray-800 overflow-x-auto no-scrollbar">
         <div className="flex gap-2">
           {tabs.map((tab) => (
@@ -152,7 +237,6 @@ export default function Admin() {
       </div>
 
       <div className="px-4 pt-4">
-        {/* Overview */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -178,7 +262,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Requests */}
         {activeTab === 'requests' && (
           <div className="space-y-3">
             {requests.length === 0 ? (
@@ -217,7 +300,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Posts */}
         {activeTab === 'posts' && (
           <div className="space-y-2">
             {allPosts.map((post) => (
@@ -235,7 +317,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Sellers */}
         {activeTab === 'sellers' && (
           <div className="space-y-2">
             {allSellers.map((seller) => (
@@ -258,7 +339,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Users */}
         {activeTab === 'users' && (
           <div className="space-y-2">
             {allUsers.map((u) => (
@@ -281,7 +361,123 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Settings */}
+        {activeTab === 'ads' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => { setShowAdForm(true); setEditingAd(null); setAdForm({ title: '', imageUrl: '', linkUrl: '', position: 'home', priority: '0' }); }}
+              className="w-full h-11 bg-[#007AFF] text-white font-semibold rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Plus size={18} /> Add New Ad
+            </button>
+
+            {showAdForm && (
+              <div className="bg-white dark:bg-[#1C1C1E] rounded-xl p-4 border border-gray-200 dark:border-gray-800 space-y-3">
+                <h3 className="text-[16px] font-semibold text-[#1C1C1E] dark:text-white">
+                  {editingAd ? 'Edit Ad' : 'New Ad'}
+                </h3>
+                <div>
+                  <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide">Title</label>
+                  <input
+                    type="text"
+                    value={adForm.title}
+                    onChange={(e) => setAdForm({ ...adForm, title: e.target.value })}
+                    placeholder="Ad title"
+                    className="w-full h-11 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-lg px-3 mt-1 text-[15px] text-[#1C1C1E] dark:text-white placeholder:text-[#8E8E93] outline-none focus:ring-2 focus:ring-[#007AFF]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide">Image URL</label>
+                  <input
+                    type="text"
+                    value={adForm.imageUrl}
+                    onChange={(e) => setAdForm({ ...adForm, imageUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full h-11 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-lg px-3 mt-1 text-[15px] text-[#1C1C1E] dark:text-white placeholder:text-[#8E8E93] outline-none focus:ring-2 focus:ring-[#007AFF]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide">Link URL</label>
+                  <input
+                    type="text"
+                    value={adForm.linkUrl}
+                    onChange={(e) => setAdForm({ ...adForm, linkUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full h-11 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-lg px-3 mt-1 text-[15px] text-[#1C1C1E] dark:text-white placeholder:text-[#8E8E93] outline-none focus:ring-2 focus:ring-[#007AFF]"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide">Position</label>
+                    <select
+                      value={adForm.position}
+                      onChange={(e) => setAdForm({ ...adForm, position: e.target.value })}
+                      className="w-full h-11 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-lg px-3 mt-1 text-[15px] text-[#1C1C1E] dark:text-white outline-none focus:ring-2 focus:ring-[#007AFF]"
+                    >
+                      <option value="home">Home</option>
+                      <option value="post">Post Detail</option>
+                      <option value="profile">Profile</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide">Priority</label>
+                    <input
+                      type="number"
+                      value={adForm.priority}
+                      onChange={(e) => setAdForm({ ...adForm, priority: e.target.value })}
+                      placeholder="0"
+                      className="w-full h-11 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-lg px-3 mt-1 text-[15px] text-[#1C1C1E] dark:text-white placeholder:text-[#8E8E93] outline-none focus:ring-2 focus:ring-[#007AFF]"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowAdForm(false)}
+                    className="flex-1 h-10 bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#8E8E93] font-medium rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={editingAd ? handleUpdateAd : handleCreateAd}
+                    className="flex-1 h-10 bg-[#007AFF] text-white font-medium rounded-lg"
+                  >
+                    {editingAd ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {ads.map((ad) => (
+                <div key={ad.id} className="bg-white dark:bg-[#1C1C1E] rounded-xl p-4 border border-gray-200 dark:border-gray-800">
+                  <div className="flex items-start gap-3">
+                    <img src={ad.imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover bg-[#F2F2F7] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-medium text-[#1C1C1E] dark:text-white truncate">{ad.title}</p>
+                      <p className="text-[12px] text-[#8E8E93]">{ad.position} · Priority: {ad.priority} · Clicks: {ad.clickCount}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ad.isActive === 1 ? 'bg-[#34C759]/10 text-[#34C759]' : 'bg-[#FF3B30]/10 text-[#FF3B30]'}`}>
+                          {ad.isActive === 1 ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <button onClick={() => openEditAd(ad)} className="p-1.5 text-[#007AFF]">
+                        <Edit3 size={16} />
+                      </button>
+                      <button onClick={() => handleToggleAd(ad)} className="p-1.5 text-[#8E8E93]">
+                        <Eye size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteAd(ad.id)} className="p-1.5 text-[#FF3B30]">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="bg-white dark:bg-[#1C1C1E] rounded-xl p-4 border border-gray-200 dark:border-gray-800 space-y-4">
             <div>
