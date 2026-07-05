@@ -1,14 +1,8 @@
-{ 
-  "$schema": "node_modules/wrangler/config-schema.json", 
-  "name": "gk-uploader", 
-  "compatibility_date": "2026-07-01", 
-  "observability": { 
-    "enabled": true 
-  }, 
-  "assets": { 
-    "not_found_handling": "single-page-application" 
-  }, 
-  "compatibility_flags": [ 
-    "nodejs_compat" 
-  ] 
-} 
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kabul-bazar",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "pages_build_output_dir": "dist"
+}
