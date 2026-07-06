@@ -1,4 +1,4 @@
-const API_BASE = '';  // Same domain for Pages Functions
+const API_BASE = 'https://gk-uploader.shamsahmadzai06.workers.dev';
 
 function getGuestId(): string {
   let guestId = localStorage.getItem('guestId');

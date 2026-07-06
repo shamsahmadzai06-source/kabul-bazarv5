@@ -1,0 +1,9 @@
+name = "kabulbazar"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "gkdatabase"
+database_name = "gkstoredatabase"
+database_id = "af8ce3c1-7745-4c54-90e4-dad6adbd3ea6"
